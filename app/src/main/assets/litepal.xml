@@ -1,0 +1,9 @@
+<litepal>
+    <dbname value="CoolWeather" />
+    <version value="1" />
+    <list>
+        <mapping class="edu.tongji.coolweather.db.Province" />
+        <mapping class="edu.tongji.coolweather.db.City" />
+        <mapping class="edu.tongji.coolweather.db.County" />
+    </list>
+</litepal>
