@@ -2,6 +2,8 @@ package edu.tongji.coolweather.util;
 
 import android.text.TextUtils;
 
+import com.google.gson.Gson;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -9,6 +11,7 @@ import org.json.JSONObject;
 import edu.tongji.coolweather.db.City;
 import edu.tongji.coolweather.db.County;
 import edu.tongji.coolweather.db.Province;
+import edu.tongji.coolweather.gson.Weather;
 
 /**
  * Created by chen on 2017/11/15.
@@ -67,7 +70,12 @@ public class Utility {
         return false;
     }
 
-
+    /**
+     * 解析和处理服务器返回的县区数据
+     * @param response
+     * @param cityId
+     * @return
+     */
     public static boolean handleCountyResponse(String response, int cityId) {
         if (!TextUtils.isEmpty(response)) {
             try {
@@ -87,6 +95,23 @@ public class Utility {
             }
         }
         return false;
+    }
+
+    /**
+     * 将返回的json数据解析成weather实体类
+     * @param response
+     * @return
+     */
+    public static Weather handleWeatherResponse(String response) {
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather");
+            String weatherContent = jsonArray.getJSONObject(0).toString();
+            return new Gson().fromJson(weatherContent, Weather.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 

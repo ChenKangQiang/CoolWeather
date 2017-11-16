@@ -1,8 +1,10 @@
 package edu.tongji.coolweather;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +12,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,11 +37,15 @@ import okhttp3.Response;
 
 public class ChooseAreaFragment extends android.support.v4.app.Fragment {
 
+    private static final String TAG = "ChooseAreaFragment";
+
     public static final int LEVEL_PROVINCE = 0;
     public static final int LEVEL_CITY = 1;
     public static final int LEVEL_COUNTY = 2;
 
     private ProgressDialog progressDialog;
+
+    private ProgressBar progressBar;
 
     private Button backButton;
 
@@ -101,6 +108,13 @@ public class ChooseAreaFragment extends android.support.v4.app.Fragment {
                 } else if (currentLevel == LEVEL_CITY) {
                     selectedCity = cityList.get(position);
                     queryCounties();
+                } else if (currentLevel == LEVEL_COUNTY) {
+                    String weatherId = countyList.get(position).getWeatherId();
+                    Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                    Log.d(TAG, "onItemClick: " + weatherId);
+                    intent.putExtra("weather_id", weatherId);
+                    startActivity(intent);
+                    getActivity().finish();
                 }
             }
         });
@@ -148,7 +162,8 @@ public class ChooseAreaFragment extends android.support.v4.app.Fragment {
     private void queryCities() {
         titleText.setText(selectedProvince.getProvinceName());
         backButton.setVisibility(View.VISIBLE);
-        cityList = DataSupport.findAll(City.class);
+        cityList = DataSupport.where("provinceId = ?",
+                selectedProvince.getProvinceId() + "").find(City.class);
         if (cityList != null && cityList.size() > 0) {
             dataList.clear();
             for (City city : cityList) {
@@ -172,7 +187,8 @@ public class ChooseAreaFragment extends android.support.v4.app.Fragment {
     private void queryCounties() {
         titleText.setText(selectedCity.getCityName());
         backButton.setVisibility(View.VISIBLE);
-        countyList = DataSupport.findAll(County.class);
+        countyList = DataSupport.where("cityId = ?",
+                selectedCity.getCityId() + "").find(County.class);
         if (countyList != null && countyList.size() > 0) {
             dataList.clear();
             for (County county : countyList) {
@@ -215,6 +231,7 @@ public class ChooseAreaFragment extends android.support.v4.app.Fragment {
             public void onResponse(Call call, Response response) throws IOException {
                 String responseText = response.body().string();
                 boolean result = false;
+                //写入本地数据库中
                 if (level == LEVEL_PROVINCE) {
                     result = Utility.handleProvinceResponse(responseText);
                 } else if (level == LEVEL_CITY) {
@@ -266,8 +283,6 @@ public class ChooseAreaFragment extends android.support.v4.app.Fragment {
             progressDialog.dismiss();
         }
     }
-
-
 
 
 }
