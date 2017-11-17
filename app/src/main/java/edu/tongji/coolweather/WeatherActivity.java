@@ -1,15 +1,19 @@
 package edu.tongji.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -32,7 +36,7 @@ public class WeatherActivity extends AppCompatActivity {
 
     private static final String TAG = "WeatherActivity";
 
-    private SwipeRefreshLayout swipeRefresh;
+    public SwipeRefreshLayout swipeRefresh;
 
     private ScrollView weatherLayout;
 
@@ -57,6 +61,12 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView sportText;
 
     private ImageView bingPicImg;
+
+    public DrawerLayout drawerLayout;
+
+    private Button navButton;
+
+    public boolean hasChangeCity = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +95,8 @@ public class WeatherActivity extends AppCompatActivity {
         bingPicImg = findViewById(R.id.bing_pic_img);
         swipeRefresh = findViewById(R.id.swipe_refresh);
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+        drawerLayout = findViewById(R.id.drawer_layout);
+        navButton = findViewById(R.id.nav_button);
 
         final String weatherId;
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -113,7 +125,24 @@ public class WeatherActivity extends AppCompatActivity {
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                requestWeather(weatherId);
+                //切换城市后，SharedPreferences应该更新过，否则下拉刷新后还是原来的城市
+                String newWeatherId = weatherId;
+                if (hasChangeCity) {
+                    SharedPreferences newPrefs = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this);
+                    String weatherString = newPrefs.getString("weather", null);
+                    if (weatherString != null) {
+                        Weather weather = Utility.handleWeatherResponse(weatherString);
+                        newWeatherId = weather.basic.weatherId;
+                    }
+                }
+                requestWeather(newWeatherId);
+            }
+        });
+
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawerLayout.openDrawer(GravityCompat.START);
             }
         });
 
@@ -125,6 +154,15 @@ public class WeatherActivity extends AppCompatActivity {
      * @param weather
      */
     private void showWeatherInfo(Weather weather) {
+
+        //启动后台服务
+        if (weather != null && "ok".equals(weather.status)) {
+            Intent intent = new Intent(this, AutoUpdateService.class);
+            startService(intent);
+        } else {
+            Toast.makeText(this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+        }
+
         String cityName = weather.basic.cityName;
         String updateTime = weather.basic.update.updateTime.split(" ")[1];
         String degree = weather.now.temperature + "℃";
@@ -166,8 +204,6 @@ public class WeatherActivity extends AppCompatActivity {
 
         //展示天气详细界面
         weatherLayout.setVisibility(View.VISIBLE);
-
-
     }
 
 
@@ -214,6 +250,7 @@ public class WeatherActivity extends AppCompatActivity {
                             Toast.makeText(WeatherActivity.this, "获取天气信息失败",
                                     Toast.LENGTH_SHORT).show();
                         }
+                        //关闭刷新样式
                         swipeRefresh.setRefreshing(false);
                     }
                 });

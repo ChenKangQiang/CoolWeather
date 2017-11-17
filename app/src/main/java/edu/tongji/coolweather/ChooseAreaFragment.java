@@ -110,11 +110,24 @@ public class ChooseAreaFragment extends android.support.v4.app.Fragment {
                     queryCounties();
                 } else if (currentLevel == LEVEL_COUNTY) {
                     String weatherId = countyList.get(position).getWeatherId();
-                    Intent intent = new Intent(getActivity(), WeatherActivity.class);
-                    Log.d(TAG, "onItemClick: " + weatherId);
-                    intent.putExtra("weather_id", weatherId);
-                    startActivity(intent);
-                    getActivity().finish();
+                    //判断用户是否在天气展示页面要切换城市
+                    if (getActivity() instanceof MainActivity) {
+                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        Log.d(TAG, "onItemClick: " + weatherId);
+                        intent.putExtra("weather_id", weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+
+                    } else if (getActivity() instanceof WeatherActivity) {
+                        WeatherActivity activity = (WeatherActivity) getActivity();
+                        //关闭侧栏
+                        activity.drawerLayout.closeDrawers();
+                        //开始更新天气
+                        activity.swipeRefresh.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                        activity.hasChangeCity = true;
+                    }
+
                 }
             }
         });
@@ -237,7 +250,7 @@ public class ChooseAreaFragment extends android.support.v4.app.Fragment {
                 } else if (level == LEVEL_CITY) {
                     result = Utility.handleCityResponse(responseText, selectedProvince.getProvinceId());
                 } else if (level == LEVEL_COUNTY) {
-                    result = Utility.handleCountyResponse(responseText, selectedCity.getProvinceId());
+                    result = Utility.handleCountyResponse(responseText, selectedCity.getCityId());
                 }
 
                 //查询及处理成功
